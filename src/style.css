@@ -542,7 +542,7 @@ input[type='range'] {
 .song-card .t {
   font-weight: 700;
   margin-bottom: 2px;
-  padding-right: 20px;
+  padding-right: 52px;
 }
 
 .song-card .c {
@@ -581,17 +581,35 @@ input[type='range'] {
   letter-spacing: 1px;
 }
 
-.song-card .del {
+.card-actions {
   position: absolute;
   top: 8px;
   right: 8px;
-  border: none;
-  background: none;
-  color: var(--muted);
-  font-size: 14px;
+  display: flex;
+  gap: 4px;
 }
 
-.song-card .del:hover {
+.card-actions span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.song-card:hover .card-actions span {
+  opacity: 1;
+}
+
+.card-actions span:hover {
+  background: var(--bg);
+  color: var(--accent-2);
+}
+
+.card-actions .del:hover {
   color: var(--bad);
 }
 

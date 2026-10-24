@@ -4,3 +4,4 @@ dist
 
 # Morceaux personnels retranscrits d'œuvres protégées : à garder en local
 src/songs-perso.ts
+perso/

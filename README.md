@@ -40,7 +40,7 @@ Choisis la main gauche ou la main droite pour la travailler seule : l'autre main
 
 Le bouton **Jeu libre** ouvre un piano sans morceau : tu joues ce que tu veux, et les notes montent au-dessus du clavier. Le bouton ● ou la touche Espace lance et arrête l'enregistrement. À l'arrêt, tu donnes un nom au morceau, puis il est ajouté à la bibliothèque. Les mains sont séparées au Do central, et tu peux t'entraîner dessus comme sur les autres morceaux. Un métronome réglable aide à garder le rythme pendant l'enregistrement.
 
-Tu peux aussi importer n'importe quel fichier `.mid` depuis la bibliothèque. Les meilleurs scores et les réglages sont enregistrés dans le navigateur.
+Tu peux aussi importer n'importe quel fichier `.mid` depuis la bibliothèque. Le bouton ⬇ d'un morceau l'exporte en `.mid`, par exemple pour transférer tes enregistrements vers un autre appareil ou un autre navigateur. Les meilleurs scores et les réglages sont enregistrés dans le navigateur.
 
 ## Structure
 

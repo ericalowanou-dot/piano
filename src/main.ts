@@ -3,6 +3,7 @@ import './style.css';
 import { PianoSynth } from './audio';
 import { Engine, type HandsSel, type Mode, type NoteState, type Results } from './engine';
 import { MidiInput } from './midi-input';
+import { midiFileName, songToMidi } from './midi-export';
 import { parseMidiFile } from './midi-file';
 import { formatTime, noteName, type Hand, type Notation, type Song, type SongNote } from './notes';
 import { Renderer, type KeyFeedback, type TrailNote, type ViewState } from './renderer';
@@ -508,6 +509,16 @@ function renderLibrary() {
       }</span></div>`;
     card.querySelector('.t')!.textContent = song.title;
     card.querySelector('.c')!.textContent = song.composer;
+    const actions = document.createElement('span');
+    actions.className = 'card-actions';
+    const exp = document.createElement('span');
+    exp.textContent = '⬇';
+    exp.title = 'Exporter en fichier .mid (pour l\'importer sur un autre appareil)';
+    exp.addEventListener('click', (e) => {
+      e.stopPropagation();
+      downloadMidi(song);
+    });
+    actions.appendChild(exp);
     if (song.imported) {
       const del = document.createElement('span');
       del.className = 'del';
@@ -520,8 +531,9 @@ function renderLibrary() {
         if (currentSong.id === song.id) loadSong(SONGS[0]);
         renderLibrary();
       });
-      card.appendChild(del);
+      actions.appendChild(del);
     }
+    card.appendChild(actions);
     card.addEventListener('click', () => {
       if (freeMode) exitFreeMode();
       loadSong(song);
@@ -529,6 +541,16 @@ function renderLibrary() {
     });
     grid.appendChild(card);
   }
+}
+
+function downloadMidi(song: Song) {
+  const url = URL.createObjectURL(new Blob([songToMidi(song)], { type: 'audio/midi' }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = midiFileName(song);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast(`« ${song.title} » exporté en ${a.download}`);
 }
 
 $('btnLibrary').addEventListener('click', () => {

@@ -33,6 +33,16 @@ class Reader {
     for (let i = 0; i < n; i++) s += String.fromCharCode(this.u8());
     return s;
   }
+  /** Texte d'un événement méta : UTF-8 si valide, sinon Latin-1 (anciens fichiers) */
+  text(n: number) {
+    const bytes = new Uint8Array(this.v.buffer, this.v.byteOffset + this.pos, n);
+    this.pos += n;
+    try {
+      return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+    } catch {
+      return new TextDecoder('latin1').decode(bytes);
+    }
+  }
   vlq() {
     let x = 0;
     for (let i = 0; i < 4; i++) {
@@ -56,6 +66,7 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
   const tempos: { tick: number; usPerQuarter: number }[] = [];
   const raw: RawNote[] = [];
   let title = '';
+  const trackNames = new Map<number, string>();
 
   for (let t = 0; t < nTracks && !r.eof; t++) {
     const id = r.str(4);
@@ -76,8 +87,10 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
         const l = r.vlq();
         if (type === 0x51 && l === 3) {
           tempos.push({ tick, usPerQuarter: (r.u8() << 16) | (r.u8() << 8) | r.u8() });
-        } else if (type === 0x03 && !title && t === 0) {
-          title = r.str(l).trim();
+        } else if (type === 0x03) {
+          const name = r.text(l).trim();
+          if (t === 0 && !title) title = name;
+          trackNames.set(t, name);
         } else r.pos += l;
         continue;
       }
@@ -142,7 +155,14 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
     };
   })();
 
-  // Attribution des mains : 2 pistes -> piste la plus aiguë = main droite, sinon partage au Do central
+  // Attribution des mains : pistes nommées « main droite / gauche » (fichiers exportés par l'appli),
+  // sinon 2 pistes -> piste la plus aiguë = main droite, sinon partage au Do central
+  const named = (n: RawNote): Hand | null => {
+    const name = trackNames.get(n.track) ?? '';
+    if (/main gauche|left hand/i.test(name)) return 'L';
+    if (/main droite|right hand/i.test(name)) return 'R';
+    return null;
+  };
   const byTrack = new Map<number, RawNote[]>();
   for (const n of raw) byTrack.set(n.track, [...(byTrack.get(n.track) ?? []), n]);
   const tracks = [...byTrack.entries()].map(([track, notes]) => ({
@@ -150,6 +170,8 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
     avg: notes.reduce((s, n) => s + n.midi, 0) / notes.length,
   }));
   const handOf = (n: RawNote): Hand => {
+    const fromName = named(n);
+    if (fromName) return fromName;
     if (tracks.length === 2) {
       const high = tracks[0].avg >= tracks[1].avg ? tracks[0].track : tracks[1].track;
       return n.track === high ? 'R' : 'L';
