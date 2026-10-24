@@ -46,7 +46,19 @@ Choisis la main gauche ou la main droite pour la travailler seule : l'autre main
 
 ## Jeu libre
 
-Le bouton **Jeu libre** ouvre un piano sans morceau : tu joues ce que tu veux, et les notes montent au-dessus du clavier. Le bouton ● ou la touche Espace lance et arrête l'enregistrement. À l'arrêt, tu donnes un nom au morceau, puis il est ajouté à la bibliothèque. Les mains sont séparées au Do central, et tu peux t'entraîner dessus comme sur les autres morceaux. ### Rythmes de batterie
+Le bouton **Jeu libre** ouvre un piano sans morceau : tu joues ce que tu veux, et les notes montent au-dessus du clavier. Le bouton ● ou la touche Espace lance et arrête l'enregistrement. À l'arrêt, tu donnes un nom au morceau, puis il est ajouté à la bibliothèque. Les mains sont séparées au Do central, et tu peux t'entraîner dessus comme sur les autres morceaux. ### Instruments
+
+Le piano peut être remplacé par l'un des 15 instruments, choisi dans le Jeu libre ou dans les Options d'un morceau :
+
+- **Claviers** : piano, piano électrique, orgue, accordéon, synthé.
+- **Vents** : flûte, trompette, saxophone.
+- **Cordes** : cordes (violons), guitare, harpe, kora, basse.
+- **Percussions** : balafon / marimba.
+- **Voix** : chœur.
+
+Tous sont synthétisés par l'appli. Un enregistrement garde son instrument, et l'export `.mid` le transmet au format General MIDI, que les autres logiciels de musique reconnaissent.
+
+### Rythmes de batterie
 
 En Jeu libre, choisis l'un des 38 rythmes, rangés par familles :
 

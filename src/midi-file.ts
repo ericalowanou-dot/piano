@@ -1,4 +1,5 @@
 // Lecture de fichiers .mid (Standard MIDI File, formats 0 et 1).
+import { instrumentFromGm } from './instruments';
 import type { Hand, Song, SongNote } from './notes';
 
 interface RawNote {
@@ -67,6 +68,7 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
   const raw: RawNote[] = [];
   let title = '';
   const trackNames = new Map<number, string>();
+  let program: number | null = null; // premier instrument General MIDI rencontré
 
   for (let t = 0; t < nTracks && !r.eof; t++) {
     const id = r.str(4);
@@ -108,6 +110,7 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
       }
       const type = status & 0xf0;
       const channel = status & 0x0f;
+      if (type === 0xc0 && channel !== 9 && program === null) program = data1; // choix d'instrument
       if (type === 0xc0 || type === 0xd0) continue; // 1 octet de données
       const data2 = r.u8();
       if (channel === 9) continue; // batterie
@@ -200,5 +203,6 @@ export function parseMidiFile(buffer: ArrayBuffer, fileName: string): Song {
     notes,
     duration: Math.max(...notes.map((n) => n.start + n.dur)),
     imported: true,
+    instrument: program === null ? undefined : instrumentFromGm(program).id,
   };
 }

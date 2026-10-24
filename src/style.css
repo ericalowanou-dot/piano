@@ -890,6 +890,7 @@ input[type='text'] {
   max-width: 100%;
 }
 
+.instr-select,
 #rhythmSel {
   font: inherit;
   color: var(--text);
@@ -1082,9 +1083,18 @@ input[type='text'] {
   .free-controls .rec-info {
     display: none;
   }
-  #rhythmSel {
+  #rhythmSel,
+  #instrFree {
     max-width: 120px;
     padding: 6px;
+  }
+  .options .instr-select {
+    max-width: none;
+    padding: 10px;
+  }
+  /* Jeu libre sur téléphone : l'instrument passe sur une 2e ligne si besoin */
+  .free .free-controls {
+    flex-wrap: wrap;
   }
   #rhythmBpm {
     width: 58px;

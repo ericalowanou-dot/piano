@@ -1,4 +1,5 @@
 // Écriture d'un morceau en fichier .mid (format 1 : une piste par main, lisible par parseMidiFile).
+import { instrumentById } from './instruments';
 import type { Hand, Song } from './notes';
 
 const PPQ = 480; // ticks par noire
@@ -31,6 +32,8 @@ function handTrack(song: Song, hand: Hand, channel: number): number[] {
   // à tick égal, on relâche avant d'enfoncer (notes répétées)
   events.sort((a, b) => a.tick - b.tick || Number(a.on) - Number(b.on));
   const body = text(0x03, hand === 'R' ? 'Main droite' : 'Main gauche');
+  // instrument General MIDI (les autres logiciels de musique le reconnaissent)
+  body.push(0, 0xc0 | channel, instrumentById(song.instrument ?? 'piano').gm);
   let last = 0;
   for (const e of events) {
     body.push(...vlq(e.tick - last), (e.on ? 0x90 : 0x80) | channel, e.midi, e.on ? 90 : 0);

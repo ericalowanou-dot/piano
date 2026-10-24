@@ -57,6 +57,10 @@
           <span class="muted lbl">BPM</span>
           <span class="beat-dots" id="beatDots"></span>
         </div>
+        <div class="group instr-group">
+          <span class="group-label">Instrument</span>
+          <select class="instr-select" id="instrFree" title="Instrument"></select>
+        </div>
         <button class="btn exit-free" id="btnExitFree" title="Retour aux morceaux">←<span class="lbl"> Retour aux morceaux</span></button>
       </div>
 
@@ -97,6 +101,11 @@
             <button data-v="both" title="Les deux mains">Les deux</button>
             <button data-v="R" title="Main droite seulement (la gauche est jouée pour toi)"><i class="hand-dot R"></i>Droite</button>
           </div>
+        </div>
+
+        <div class="group">
+          <span class="group-label">Instrument</span>
+          <select class="instr-select" id="instrSong" title="Instrument"></select>
         </div>
 
         <div class="group tempo">

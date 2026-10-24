@@ -4,6 +4,7 @@ import { PianoSynth } from './audio';
 import { Engine, type HandsSel, type Mode, type NoteState, type Results } from './engine';
 import { MidiInput } from './midi-input';
 import { DrumMachine, PATTERNS, RHYTHM_GROUPS, patternById, stepDuration } from './drums';
+import { INSTRUMENT_GROUPS, INSTRUMENTS, instrumentById } from './instruments';
 import { midiFileName, songToMidi } from './midi-export';
 import { parseMidiFile } from './midi-file';
 import { formatTime, noteName, type Hand, type Notation, type Song, type SongNote } from './notes';
@@ -46,6 +47,7 @@ const settings = load('piano.settings', {
   autoShift: true,
   rhythm: 'pop',
   drumVolume: 70,
+  instrument: 'piano',
   full: false,
   localSound: true,
   volume: 80,
@@ -371,6 +373,8 @@ function loadSong(song: Song) {
   settings.songId = song.id;
   saveSettings();
   engine.load(song);
+  // un morceau enregistré ou importé avec un instrument le reprend
+  if (song.instrument && song.instrument !== settings.instrument) setInstrument(song.instrument, true);
   setKbdBase(bestBase(song.notes.map((n) => n.midi), [], kbdBase), false);
   planKeyboard();
   applyRange();
@@ -528,7 +532,33 @@ function setTempo(v: number) {
 function updateOptionsSummary() {
   const mode = { wait: 'Attente', realtime: 'Temps réel', demo: 'Écoute' }[settings.mode];
   const hands = { both: '2 mains', L: 'M. gauche', R: 'M. droite' }[settings.hands];
-  $('optionsSummary').textContent = `${mode} · ${hands} · ${settings.tempo} %`;
+  const instr = settings.instrument === 'piano' ? '' : ` · ${instrumentById(settings.instrument).name}`;
+  $('optionsSummary').textContent = `${mode} · ${hands} · ${settings.tempo} %${instr}`;
+}
+
+// ---------- Instruments ----------
+const instrSelects = [$<HTMLSelectElement>('instrFree'), $<HTMLSelectElement>('instrSong')];
+for (const sel of instrSelects) {
+  for (const group of INSTRUMENT_GROUPS) {
+    const og = document.createElement('optgroup');
+    og.label = group;
+    for (const i of INSTRUMENTS.filter((x) => x.group === group)) og.appendChild(new Option(i.name, i.id));
+    sel.appendChild(og);
+  }
+  sel.addEventListener('change', () => {
+    setInstrument(sel.value, false);
+    sel.blur();
+  });
+}
+
+function setInstrument(id: string, announce: boolean) {
+  const def = instrumentById(id);
+  synth.setInstrument(def);
+  settings.instrument = def.id;
+  for (const sel of instrSelects) sel.value = def.id;
+  saveSettings();
+  updateOptionsSummary();
+  if (announce) toast(`Instrument : ${def.name}`);
 }
 const setOptionsOpen = (open: boolean) => document.body.classList.toggle('options-open', open);
 $('btnOptions').addEventListener('click', () => setOptionsOpen(true));
@@ -938,6 +968,7 @@ function saveRecording(practice: boolean) {
     notes,
     duration: Math.max(...notes.map((n) => n.start + n.dur)),
     imported: true,
+    instrument: settings.instrument,
   };
   if (pendingRhythm) {
     const p = patternById(pendingRhythm.pattern)!;
@@ -1144,6 +1175,7 @@ function frame(now: number) {
 // ---------- Démarrage ----------
 engine.mode = settings.mode;
 engine.hands = settings.hands;
+setInstrument(settings.instrument, false);
 setTempo(settings.tempo);
 loadSong(allSongs().find((s) => s.id === settings.songId) ?? SONGS[0]);
 updateComputerKeys();
@@ -1164,6 +1196,7 @@ if (import.meta.env.DEV) {
     engine,
     renderer,
     drums,
+    synth,
     step(dt: number) {
       engine.update(dt);
       followPlannedBase();

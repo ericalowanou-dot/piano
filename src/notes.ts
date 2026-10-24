@@ -19,6 +19,8 @@ export interface Song {
   imported?: boolean;
   /** Accompagnement de batterie enregistré avec le morceau (start = début d'une mesure, en secondes) */
   rhythm?: { pattern: string; bpm: number; start: number };
+  /** Instrument avec lequel le morceau a été enregistré ou importé */
+  instrument?: string;
 }
 
 export type Notation = 'latin' | 'english';
