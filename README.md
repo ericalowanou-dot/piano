@@ -11,6 +11,14 @@ npm run dev
 
 Puis ouvrir http://localhost:5173 dans **Chrome ou Edge**, les seuls navigateurs qui gèrent le Web MIDI.
 
+## Sur téléphone
+
+- Le clavier affiché est plus étroit, avec des touches assez larges pour les doigts, et il **suit le morceau tout seul**. En Jeu libre, les boutons ◀ ▶ changent d'octave.
+- En **paysage**, le piano couvre environ 3 octaves : c'est la meilleure position pour jouer à deux mains. En portrait, l'appli convient mieux au travail d'une main à la fois.
+- Le mode, les mains et le tempo se règlent dans le bouton **Options**.
+- **Installer l'appli** : sur Android, ouvre le menu de Chrome puis « Installer l'application » ou « Ajouter à l'écran d'accueil ». Sur iPhone, ouvre le menu Partager de Safari puis « Sur l'écran d'accueil ». L'appli s'ouvre alors en plein écran et fonctionne hors connexion.
+- Sur iPhone, coupe le mode silencieux pour entendre le son. Le clavier MIDI n'est pas pris en charge par Safari ; il fonctionne sur Android avec un adaptateur USB OTG.
+
 ## Jouer
 
 - **Clavier MIDI** : branche-le en USB avant d'ouvrir la page, puis autorise l'accès MIDI quand le navigateur le demande.

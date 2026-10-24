@@ -1,0 +1,17 @@
+{
+  "name": "Piano Studio",
+  "short_name": "Piano",
+  "description": "Apprends et joue du piano avec des notes qui tombent.",
+  "lang": "fr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone"],
+  "orientation": "any",
+  "background_color": "#0a0c18",
+  "theme_color": "#12152a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

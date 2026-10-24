@@ -33,11 +33,15 @@ function save(key: string, value: unknown) {
   }
 }
 
+// Téléphone / tablette : écran tactile comme pointeur principal
+const isTouch = matchMedia('(pointer: coarse)').matches;
+document.body.classList.toggle('touch', isTouch);
+
 const settings = load('piano.settings', {
   notation: 'latin' as Notation,
   noteNames: true,
   hints: true,
-  pcKeys: true,
+  pcKeys: !isTouch,
   autoShift: true,
   full: false,
   localSound: true,
@@ -95,7 +99,10 @@ function userNoteOn(midi: number, velocity: number, source: Source) {
   const res = engine.userNoteOn(midi);
   view.pressed.set(midi, res === 'correct' ? 'good' : res === 'wrong' ? 'bad' : 'free');
   if (res === 'correct') renderer.burst(midi, 'good');
-  else if (res === 'wrong') renderer.burst(midi, 'bad');
+  else if (res === 'wrong') {
+    renderer.burst(midi, 'bad');
+    if (isTouch) navigator.vibrate?.(35); // petite vibration (Android)
+  }
 }
 
 function userNoteOff(midi: number, source: Source) {
@@ -159,6 +166,7 @@ const pointerEnd = (e: PointerEvent) => {
 };
 canvas.addEventListener('pointerup', pointerEnd);
 canvas.addEventListener('pointercancel', pointerEnd);
+canvas.addEventListener('contextmenu', (e) => e.preventDefault()); // appui long sur mobile
 
 // Clavier d'ordinateur : positions physiques (fonctionne en AZERTY comme en QWERTY), deux octaves et demie.
 // Rangée du bas = octave grave (noires sur la rangée du milieu),
@@ -388,14 +396,100 @@ function applyRange() {
     hi = Math.min(108, hi + 1); // Do final
     lo = Math.max(21, lo);
   }
-  renderer.setRange(lo, hi);
+  setVisibleRange(lo, hi);
 }
+
+// ---------- Fenêtre de touches (écran tactile étroit) ----------
+// Sur téléphone, toutes les touches ne tiennent pas avec une largeur jouable au doigt :
+// on n'affiche qu'une fenêtre du clavier, qui suit les notes à venir.
+const MIN_TOUCH_KEY = 36; // largeur minimale d'une touche blanche, en pixels
+let fullRange: [number, number] = [48, 84];
+let windowLo: number | null = null; // première touche affichée quand le clavier est fenêtré
+
+const isWhite = (m: number) => ![1, 3, 6, 8, 10].includes(m % 12);
+const whitesIn = (lo: number, hi: number) => {
+  let n = 0;
+  for (let m = lo; m <= hi; m++) if (isWhite(m)) n++;
+  return n;
+};
+const maxWhites = () =>
+  isTouch ? Math.max(7, Math.floor($('stage').clientWidth / MIN_TOUCH_KEY)) : Infinity;
+
+/** Dernière touche de la fenêtre qui commence à `lo` */
+function windowHi(lo: number): number {
+  let m = lo;
+  for (let n = 1; n < maxWhites(); m++) if (isWhite(m + 1)) n++;
+  return m;
+}
+
+function setVisibleRange(lo: number, hi: number) {
+  fullRange = [lo, hi];
+  const windowed = whitesIn(lo, hi) > maxWhites();
+  document.body.classList.toggle('windowed', windowed);
+  if (!windowed) {
+    windowLo = null;
+    renderer.setRange(lo, hi);
+  } else showWindow(windowLo ?? (freeMode ? 60 : lo));
+}
+
+function showWindow(lo: number) {
+  const [fLo, fHi] = fullRange;
+  // la fenêtre reste dans la tessiture et commence sur une touche blanche
+  while (windowHi(lo) > fHi && lo > fLo) lo--;
+  lo = Math.max(fLo, lo);
+  while (!isWhite(lo)) lo++;
+  if (lo === windowLo && renderer.lo === lo) return;
+  windowLo = lo;
+  renderer.setRange(lo, windowHi(lo));
+}
+
+/** Déplace la fenêtre pour que les prochaines notes soient visibles et jouables */
+function followWindow() {
+  if (windowLo === null || freeMode) return;
+  const horizon = engine.time + 3.2;
+  const upcoming = engine.states.filter(
+    (s) =>
+      s.status === 'pending' &&
+      (engine.mode === 'demo' || engine.isActive(s.note)) &&
+      s.note.start >= engine.time - 0.1 &&
+      s.note.start <= horizon,
+  );
+  if (!upcoming.length) return;
+  const t0 = upcoming[0].note.start;
+  const next = upcoming.filter((s) => s.note.start - t0 < 0.06).map((s) => s.note.midi);
+  const hi = windowHi(windowLo);
+  if (next.every((m) => m >= windowLo! && m <= hi)) return;
+  // choisit la fenêtre qui montre l'accord suivant et le plus de notes à venir
+  const soon = upcoming.map((s) => s.note.midi);
+  let best = windowLo;
+  let bestScore = -1;
+  for (let lo = fullRange[0]; lo <= fullRange[1]; lo++) {
+    if (!isWhite(lo)) continue;
+    const h = windowHi(lo);
+    if (h > fullRange[1] + 1) break;
+    const fitsNext = next.every((m) => m >= lo && m <= h);
+    const score = (fitsNext ? 1000 : 0) + soon.filter((m) => m >= lo && m <= h).length;
+    if (score > bestScore || (score === bestScore && Math.abs(lo - windowLo) < Math.abs(best - windowLo))) {
+      best = lo;
+      bestScore = score;
+    }
+  }
+  showWindow(best);
+}
+
+function panWindow(dir: -1 | 1) {
+  if (windowLo === null) return;
+  showWindow(Math.max(fullRange[0], Math.min(fullRange[1], windowLo + 12 * dir)));
+}
+$('panLeft').addEventListener('click', () => panWindow(-1));
+$('panRight').addEventListener('click', () => panWindow(1));
 
 function togglePlay() {
   synth.resume();
   if (engine.playing) engine.pause();
   else {
     closeModals();
+    setOptionsOpen(false);
     engine.play();
   }
   updatePlayState();
@@ -420,7 +514,34 @@ function setTempo(v: number) {
   $<HTMLInputElement>('tempo').value = String(settings.tempo);
   $('tempoVal').textContent = `${settings.tempo} %`;
   saveSettings();
+  updateOptionsSummary();
 }
+
+// Panneau d'options (tiroir en bas de l'écran sur mobile) : le bouton résume les réglages
+function updateOptionsSummary() {
+  const mode = { wait: 'Attente', realtime: 'Temps réel', demo: 'Écoute' }[settings.mode];
+  const hands = { both: '2 mains', L: 'M. gauche', R: 'M. droite' }[settings.hands];
+  $('optionsSummary').textContent = `${mode} · ${hands} · ${settings.tempo} %`;
+}
+const setOptionsOpen = (open: boolean) => document.body.classList.toggle('options-open', open);
+$('btnOptions').addEventListener('click', () => setOptionsOpen(true));
+$('btnOptionsClose').addEventListener('click', () => setOptionsOpen(false));
+$('optionsBackdrop').addEventListener('click', () => setOptionsOpen(false));
+
+// Conseil « tourne ton téléphone » (masquable)
+try {
+  if (localStorage.getItem('piano.rotateHint') === 'off') $('rotateHint').classList.add('hidden');
+} catch {
+  /* stockage indisponible */
+}
+$('rotateClose').addEventListener('click', () => {
+  $('rotateHint').classList.add('hidden');
+  try {
+    localStorage.setItem('piano.rotateHint', 'off');
+  } catch {
+    /* stockage indisponible */
+  }
+});
 
 function setupSeg(id: string, value: string, onChange: (v: string) => void) {
   const root = $(id);
@@ -443,6 +564,7 @@ setupSeg('segMode', settings.mode, (v) => {
   planKeyboard();
   saveSettings();
   updatePlayState();
+  updateOptionsSummary();
 });
 setupSeg('segHands', settings.hands, (v) => {
   settings.hands = v as HandsSel;
@@ -450,6 +572,7 @@ setupSeg('segHands', settings.hands, (v) => {
   engine.reconfigure();
   planKeyboard();
   saveSettings();
+  updateOptionsSummary();
 });
 
 $('btnPlay').addEventListener('click', (e) => {
@@ -475,6 +598,7 @@ $('progress').addEventListener('click', (e) => {
 // ---------- Modales ----------
 function openModal(id: string) {
   closeModals();
+  setOptionsOpen(false);
   if (engine.playing) togglePlay();
   $(id).classList.add('open');
 }
@@ -705,10 +829,12 @@ function enterFreeMode() {
   if (freeMode) return;
   if (engine.playing) togglePlay();
   closeModals();
+  setOptionsOpen(false);
   synth.allOff();
   freeMode = true;
   document.body.classList.add('free');
-  renderer.setRange(settings.full ? 21 : 36, settings.full ? 108 : 96);
+  windowLo = null;
+  setVisibleRange(settings.full ? 21 : 36, settings.full ? 108 : 96);
   $('freeHint').classList.remove('hidden');
 }
 
@@ -720,6 +846,7 @@ function exitFreeMode() {
   trail.length = 0;
   document.body.classList.remove('free');
   synth.allOff();
+  windowLo = null;
   applyRange();
   followPlannedBase();
   updatePlayState();
@@ -889,6 +1016,7 @@ function frame(now: number) {
   }
   engine.update(dt);
   followPlannedBase();
+  followWindow();
   renderer.draw(engine, view, dt);
 
   const s = engine.stats;
@@ -924,17 +1052,31 @@ window.addEventListener('focus', () => void loadKeyboardLayout());
 document.addEventListener('visibilitychange', () => document.hidden || void loadKeyboardLayout());
 void midiInput.init().then(() => midiInput.select(settings.midiDevice));
 
+// Appli installable et utilisable hors connexion (seulement en production, pour ne pas gêner le développement)
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
+
 // Accès de test (développement uniquement) : faire avancer le jeu sans animation
 if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__piano = {
     engine,
+    renderer,
     step(dt: number) {
       engine.update(dt);
       followPlannedBase();
+      followWindow();
     },
   };
 }
 
-new ResizeObserver(() => renderer.resize()).observe($('stage'));
-renderer.resize();
+// Redimensionnement / rotation du téléphone : on recalcule la fenêtre de touches
+function onResize() {
+  renderer.resize();
+  setVisibleRange(fullRange[0], fullRange[1]);
+  if (!freeMode) followWindow();
+  document.documentElement.style.setProperty('--kb-h', `${Math.round(renderer.keyboardHeight)}px`);
+}
+new ResizeObserver(onResize).observe($('stage'));
+onResize();
 requestAnimationFrame(frame);

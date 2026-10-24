@@ -65,7 +65,8 @@ export class Renderer {
   }
 
   get keyboardHeight() {
-    return Math.min(190, Math.max(110, this.h * 0.24));
+    // écran bas (téléphone en paysage) : clavier proportionnellement plus haut pour les doigts
+    return Math.min(190, Math.max(90, this.h * (this.h < 420 ? 0.42 : 0.24)));
   }
 
   get hitY() {

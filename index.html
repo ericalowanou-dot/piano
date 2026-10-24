@@ -2,8 +2,15 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Piano Studio</title>
+    <meta name="theme-color" content="#12152a" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Piano" />
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%237a5cff'/><rect x='6' y='7' width='5' height='18' rx='1' fill='white'/><rect x='13.5' y='7' width='5' height='18' rx='1' fill='white'/><rect x='21' y='7' width='5' height='18' rx='1' fill='white'/><rect x='9.5' y='7' width='3.5' height='11' rx='1' fill='%231b1d2e'/><rect x='19' y='7' width='3.5' height='11' rx='1' fill='%231b1d2e'/></svg>" />
   </head>
   <body>
@@ -15,11 +22,11 @@
         </div>
         <button class="btn" id="btnLibrary" title="Choisir un morceau">
           <svg viewBox="0 0 24 24"><path d="M4 5h4v14H4zM10 5h4v14h-4zM16.5 5.5l3.8-1 3.2 13.6-3.8 1z" /></svg>
-          Bibliothèque
+          <span class="lbl">Bibliothèque</span>
         </button>
         <button class="btn" id="btnFree" title="Jouer librement et enregistrer tes propres morceaux">
           <svg viewBox="0 0 24 24"><path d="M9 3v11.6A3.5 3.5 0 1 0 11 17.5V8h6V3z" /></svg>
-          Jeu libre
+          <span class="lbl">Jeu libre</span>
         </button>
         <div class="song-info">
           <div class="song-title" id="songTitle">—</div>
@@ -46,9 +53,9 @@
           <span class="group-label">Métronome</span>
           <button class="toggle" id="btnMetro" title="Activer / couper le métronome">Off</button>
           <input type="number" id="metroBpm" min="40" max="220" value="90" title="Pulsations par minute" />
-          <span class="muted">BPM</span>
+          <span class="muted lbl">BPM</span>
         </div>
-        <button class="btn exit-free" id="btnExitFree">← Retour aux morceaux</button>
+        <button class="btn exit-free" id="btnExitFree" title="Retour aux morceaux">←<span class="lbl"> Retour aux morceaux</span></button>
       </div>
 
       <div class="controls" id="songControls">
@@ -60,8 +67,18 @@
             <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L20 12z" /></svg>
             <svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z" /></svg>
           </button>
+          <button class="btn" id="btnOptions" title="Mode, mains et tempo">
+            <svg viewBox="0 0 24 24"><path d="M3 6h11v2H3zM18 6h3v2h-3zM14 4h2v6h-2zM3 16h4v2H3zM11 16h10v2H11zM7 14h2v6H7z" /></svg>
+            <span id="optionsSummary">Options</span>
+          </button>
         </div>
 
+        <div class="options-backdrop" id="optionsBackdrop"></div>
+        <div class="options" id="optionsPanel">
+        <div class="options-head">
+          <strong>Options</strong>
+          <button class="icon-btn" id="btnOptionsClose" title="Fermer">✕</button>
+        </div>
         <div class="group">
           <span class="group-label">Mode</span>
           <div class="seg" id="segMode">
@@ -85,13 +102,14 @@
           <input type="range" id="tempo" min="25" max="150" step="5" value="100" />
           <span class="tempo-val" id="tempoVal">100 %</span>
         </div>
+        </div>
 
         <div class="hud" id="hud">
           <div class="stat score"><span class="v" id="hudScore">100</span><span class="k">% précision</span></div>
-          <div class="stat"><span class="v good" id="hudCorrect">0</span><span class="k">justes</span></div>
+          <div class="stat stat-extra"><span class="v good" id="hudCorrect">0</span><span class="k">justes</span></div>
           <div class="stat"><span class="v bad" id="hudWrong">0</span><span class="k">erreurs</span></div>
           <div class="stat" id="hudMissedBox"><span class="v warn" id="hudMissed">0</span><span class="k">ratées</span></div>
-          <div class="stat"><span class="v" id="hudStreak">0</span><span class="k">série</span></div>
+          <div class="stat stat-extra"><span class="v" id="hudStreak">0</span><span class="k">série</span></div>
         </div>
       </div>
 
@@ -108,20 +126,30 @@
 
         <div class="wait-hint" id="waitHint"></div>
 
+        <div class="rotate-hint" id="rotateHint">
+          <span>↻ Tourne ton téléphone pour un piano plus grand</span>
+          <button id="rotateClose" title="Masquer">✕</button>
+        </div>
+
+        <button class="pan-btn left" id="panLeft" title="Octave plus grave">◀</button>
+        <button class="pan-btn right" id="panRight" title="Octave plus aiguë">▶</button>
+
         <div class="start-hint" id="startHint">
           <div class="start-card">
             <div class="start-title">Prêt ?</div>
-            <p>Appuie sur <kbd>Espace</kbd> ou sur ▶ pour commencer.</p>
-            <p class="muted">Joue avec ton clavier MIDI, la souris, ou les touches de l'ordinateur :
+            <p class="pc-only">Appuie sur <kbd>Espace</kbd> ou sur ▶ pour commencer.</p>
+            <p class="touch-only">Touche ▶ pour commencer.</p>
+            <p class="muted pc-only">Joue avec ton clavier MIDI, la souris, ou les touches de l'ordinateur :
               <span id="kbdHelp"></span>. La lettre à taper est écrite sur chaque note qui tombe ;
               <kbd>←</kbd> <kbd>→</kbd> changent d'octave.</p>
+            <p class="muted touch-only">Joue avec tes doigts sur le clavier en bas de l'écran : il suit le morceau tout seul.</p>
           </div>
         </div>
         <div class="start-hint free-hint" id="freeHint">
           <div class="start-card">
             <div class="start-title">Jeu libre</div>
             <p>Joue ce que tu veux : les notes montent au-dessus du clavier.</p>
-            <p class="muted">Appuie sur <span class="rec-mini"></span> ou sur <kbd>Espace</kbd> pour enregistrer :
+            <p class="muted">Appuie sur <span class="rec-mini"></span><span class="pc-only"> ou sur <kbd>Espace</kbd></span> pour enregistrer :
               ton morceau sera ajouté à la bibliothèque pour t'entraîner dessus.</p>
           </div>
         </div>
@@ -142,7 +170,8 @@
           <svg viewBox="0 0 24 24"><path d="M12 3l5 5h-3v6h-4V8H7zM5 17h14v3H5z" /></svg>
           <div>
             <strong>Importer un fichier MIDI (.mid)</strong>
-            <span>Clique ici ou glisse-dépose un fichier n'importe où dans la fenêtre</span>
+            <span class="pc-only">Clique ici ou glisse-dépose un fichier n'importe où dans la fenêtre</span>
+            <span class="touch-only">Touche ici pour choisir un fichier</span>
           </div>
         </label>
       </div>
