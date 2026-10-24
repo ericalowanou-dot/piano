@@ -1,0 +1,6 @@
+node_modules
+dist
+.claude/
+
+# Morceaux personnels retranscrits d'œuvres protégées : à garder en local
+src/songs-perso.ts

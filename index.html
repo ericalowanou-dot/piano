@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Piano Studio</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%237a5cff'/><rect x='6' y='7' width='5' height='18' rx='1' fill='white'/><rect x='13.5' y='7' width='5' height='18' rx='1' fill='white'/><rect x='21' y='7' width='5' height='18' rx='1' fill='white'/><rect x='9.5' y='7' width='3.5' height='11' rx='1' fill='%231b1d2e'/><rect x='19' y='7' width='3.5' height='11' rx='1' fill='%231b1d2e'/></svg>" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="logo"></span>
+          <span>Piano Studio</span>
+        </div>
+        <button class="btn" id="btnLibrary" title="Choisir un morceau">
+          <svg viewBox="0 0 24 24"><path d="M4 5h4v14H4zM10 5h4v14h-4zM16.5 5.5l3.8-1 3.2 13.6-3.8 1z" /></svg>
+          Bibliothèque
+        </button>
+        <button class="btn" id="btnFree" title="Jouer librement et enregistrer tes propres morceaux">
+          <svg viewBox="0 0 24 24"><path d="M9 3v11.6A3.5 3.5 0 1 0 11 17.5V8h6V3z" /></svg>
+          Jeu libre
+        </button>
+        <div class="song-info">
+          <div class="song-title" id="songTitle">—</div>
+          <div class="song-sub" id="songSub"></div>
+        </div>
+        <div class="spacer"></div>
+        <div class="midi-status" id="midiStatus" title="État du clavier MIDI">
+          <span class="dot"></span><span class="label">MIDI…</span>
+        </div>
+        <button class="icon-btn" id="btnSettings" title="Réglages">
+          <svg viewBox="0 0 24 24"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1l-.4-2.6h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.4L4.6 11a7.5 7.5 0 0 0 0 2l-2 1.6 2 3.4 2.4-1a7 7 0 0 0 1.7 1l.4 2.6h4l.4-2.6a7 7 0 0 0 1.7-1l2.4 1 2-3.4zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z" /></svg>
+        </button>
+      </header>
+
+      <div class="controls free-controls" id="freeControls">
+        <div class="group">
+          <button class="rec-btn" id="btnRec" title="Démarrer / arrêter l'enregistrement (Espace)"><span></span></button>
+          <div class="rec-info">
+            <strong id="recLabel">Enregistrer</strong>
+            <span class="time" id="recTime">Joue ce que tu veux</span>
+          </div>
+        </div>
+        <div class="group">
+          <span class="group-label">Métronome</span>
+          <button class="toggle" id="btnMetro" title="Activer / couper le métronome">Off</button>
+          <input type="number" id="metroBpm" min="40" max="220" value="90" title="Pulsations par minute" />
+          <span class="muted">BPM</span>
+        </div>
+        <button class="btn exit-free" id="btnExitFree">← Retour aux morceaux</button>
+      </div>
+
+      <div class="controls" id="songControls">
+        <div class="group">
+          <button class="icon-btn big" id="btnRestart" title="Recommencer (Retour arrière)">
+            <svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9.5 12z" /></svg>
+          </button>
+          <button class="play-btn" id="btnPlay" title="Lecture / pause (Espace)">
+            <svg class="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15L20 12z" /></svg>
+            <svg class="i-pause" viewBox="0 0 24 24"><path d="M6 4h4.5v16H6zM13.5 4H18v16h-4.5z" /></svg>
+          </button>
+        </div>
+
+        <div class="group">
+          <span class="group-label">Mode</span>
+          <div class="seg" id="segMode">
+            <button data-v="wait" title="Le morceau attend que tu joues la bonne note">Attente</button>
+            <button data-v="realtime" title="Le morceau avance en rythme, joue au bon moment">Temps réel</button>
+            <button data-v="demo" title="Écoute le morceau joué automatiquement">Écoute</button>
+          </div>
+        </div>
+
+        <div class="group">
+          <span class="group-label">Mains</span>
+          <div class="seg" id="segHands">
+            <button data-v="L" title="Main gauche seulement (la droite est jouée pour toi)"><i class="hand-dot L"></i>Gauche</button>
+            <button data-v="both" title="Les deux mains">Les deux</button>
+            <button data-v="R" title="Main droite seulement (la gauche est jouée pour toi)"><i class="hand-dot R"></i>Droite</button>
+          </div>
+        </div>
+
+        <div class="group tempo">
+          <span class="group-label">Tempo</span>
+          <input type="range" id="tempo" min="25" max="150" step="5" value="100" />
+          <span class="tempo-val" id="tempoVal">100 %</span>
+        </div>
+
+        <div class="hud" id="hud">
+          <div class="stat score"><span class="v" id="hudScore">100</span><span class="k">% précision</span></div>
+          <div class="stat"><span class="v good" id="hudCorrect">0</span><span class="k">justes</span></div>
+          <div class="stat"><span class="v bad" id="hudWrong">0</span><span class="k">erreurs</span></div>
+          <div class="stat" id="hudMissedBox"><span class="v warn" id="hudMissed">0</span><span class="k">ratées</span></div>
+          <div class="stat"><span class="v" id="hudStreak">0</span><span class="k">série</span></div>
+        </div>
+      </div>
+
+      <div class="progress-row" id="progressRow">
+        <span class="time" id="timeCur">0:00</span>
+        <div class="progress" id="progress" title="Cliquer pour se déplacer dans le morceau">
+          <div class="fill" id="progressFill"></div>
+        </div>
+        <span class="time" id="timeTotal">0:00</span>
+      </div>
+
+      <main class="stage" id="stage">
+        <canvas id="canvas"></canvas>
+
+        <div class="wait-hint" id="waitHint"></div>
+
+        <div class="start-hint" id="startHint">
+          <div class="start-card">
+            <div class="start-title">Prêt ?</div>
+            <p>Appuie sur <kbd>Espace</kbd> ou sur ▶ pour commencer.</p>
+            <p class="muted">Joue avec ton clavier MIDI, la souris, ou les touches de l'ordinateur :
+              <span id="kbdHelp"></span>. La lettre à taper est écrite sur chaque note qui tombe ;
+              <kbd>←</kbd> <kbd>→</kbd> changent d'octave.</p>
+          </div>
+        </div>
+        <div class="start-hint free-hint" id="freeHint">
+          <div class="start-card">
+            <div class="start-title">Jeu libre</div>
+            <p>Joue ce que tu veux : les notes montent au-dessus du clavier.</p>
+            <p class="muted">Appuie sur <span class="rec-mini"></span> ou sur <kbd>Espace</kbd> pour enregistrer :
+              ton morceau sera ajouté à la bibliothèque pour t'entraîner dessus.</p>
+          </div>
+        </div>
+        <div class="toast" id="toast"></div>
+      </main>
+    </div>
+
+    <!-- Bibliothèque -->
+    <div class="modal" id="libraryModal">
+      <div class="modal-card wide">
+        <div class="modal-head">
+          <h2>Bibliothèque</h2>
+          <button class="icon-btn" data-close title="Fermer">✕</button>
+        </div>
+        <div class="library-grid" id="libraryGrid"></div>
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="fileInput" accept=".mid,.midi,audio/midi" hidden />
+          <svg viewBox="0 0 24 24"><path d="M12 3l5 5h-3v6h-4V8H7zM5 17h14v3H5z" /></svg>
+          <div>
+            <strong>Importer un fichier MIDI (.mid)</strong>
+            <span>Clique ici ou glisse-dépose un fichier n'importe où dans la fenêtre</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Réglages -->
+    <div class="modal" id="settingsModal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Réglages</h2>
+          <button class="icon-btn" data-close title="Fermer">✕</button>
+        </div>
+        <div class="settings">
+          <label class="row">
+            <span>Clavier MIDI</span>
+            <select id="setMidiDevice"></select>
+          </label>
+          <label class="row">
+            <span>Noms des notes</span>
+            <select id="setNotation">
+              <option value="latin">Do Ré Mi</option>
+              <option value="english">C D E</option>
+            </select>
+          </label>
+          <label class="row check">
+            <span>Afficher le nom sur les notes qui tombent</span>
+            <input type="checkbox" id="setNoteNames" />
+          </label>
+          <label class="row check">
+            <span>Surligner les touches à jouer</span>
+            <input type="checkbox" id="setHints" />
+          </label>
+          <label class="row check">
+            <span>Afficher les touches de l'ordinateur sur le clavier</span>
+            <input type="checkbox" id="setPcKeys" />
+          </label>
+          <label class="row check">
+            <span>Décaler automatiquement le clavier d'ordinateur<br /><small>Suit les notes à venir pour qu'elles restent jouables</small></span>
+            <input type="checkbox" id="setAutoShift" />
+          </label>
+          <label class="row check">
+            <span>Clavier complet (88 touches)</span>
+            <input type="checkbox" id="setFull" />
+          </label>
+          <label class="row check">
+            <span>Jouer le son du clavier MIDI dans l'appli<br /><small>À désactiver si ton piano a ses propres haut-parleurs</small></span>
+            <input type="checkbox" id="setLocalSound" />
+          </label>
+          <label class="row">
+            <span>Volume</span>
+            <input type="range" id="setVolume" min="0" max="100" />
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sauvegarde d'un enregistrement -->
+    <div class="modal" id="saveModal">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Enregistrer le morceau</h2>
+          <button class="icon-btn" data-close title="Fermer">✕</button>
+        </div>
+        <p class="muted" id="saveInfo"></p>
+        <div class="settings">
+          <label class="row">
+            <span>Nom</span>
+            <input type="text" id="saveName" maxlength="60" />
+          </label>
+          <label class="row check">
+            <span>Séparer les mains au Do central<br /><small>Notes graves = main gauche, aiguës = main droite</small></span>
+            <input type="checkbox" id="saveSplit" checked />
+          </label>
+        </div>
+        <div class="res-actions">
+          <button class="btn" id="saveDiscard">Supprimer</button>
+          <button class="btn" id="saveOnly">Ajouter</button>
+          <button class="btn primary" id="savePlay">Ajouter et s'entraîner</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résultats -->
+    <div class="modal" id="resultsModal">
+      <div class="modal-card results">
+        <div class="stars" id="resStars"></div>
+        <div class="res-score"><span id="resScore">0</span><small>%</small></div>
+        <div class="res-msg" id="resMsg"></div>
+        <div class="res-grid" id="resGrid"></div>
+        <div class="res-actions">
+          <button class="btn" id="resLibrary">Bibliothèque</button>
+          <button class="btn primary" id="resReplay">Rejouer</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
