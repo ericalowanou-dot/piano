@@ -9,7 +9,8 @@ interface Voice {
 
 export class PianoSynth {
   readonly ctx: AudioContext;
-  private master: GainNode;
+  /** Sortie générale (piano, métronome, batterie) */
+  readonly master: GainNode;
   private dry: GainNode;
   private voices = new Map<number, Voice>();
   private sustain = false;
@@ -130,19 +131,6 @@ export class PianoSynth {
     oscs[0].onended = () => {
       if (this.voices.get(midi)?.gain === gain) this.voices.delete(midi);
     };
-  }
-
-  /** Clic de métronome programmé à `when` (temps AudioContext), plus aigu sur le premier temps */
-  click(when: number, accent: boolean) {
-    const o = this.ctx.createOscillator();
-    const g = this.ctx.createGain();
-    o.frequency.value = accent ? 1760 : 1100;
-    g.gain.setValueAtTime(0, when);
-    g.gain.linearRampToValueAtTime(accent ? 0.35 : 0.22, when + 0.002);
-    g.gain.exponentialRampToValueAtTime(0.0001, when + 0.05);
-    o.connect(g).connect(this.master);
-    o.start(when);
-    o.stop(when + 0.06);
   }
 
   noteOff(midi: number) {

@@ -890,6 +890,43 @@ input[type='text'] {
   max-width: 100%;
 }
 
+#rhythmSel {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 8px;
+  max-width: 150px;
+}
+
+.beat-dots {
+  display: inline-flex;
+  gap: 5px;
+}
+
+.beat-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line);
+  transition: background 0.05s;
+}
+
+.beat-dots i.on {
+  background: var(--accent-2);
+  box-shadow: 0 0 8px var(--accent-2);
+}
+
+.beat-dots i.on.first {
+  background: var(--warn);
+  box-shadow: 0 0 8px var(--warn);
+}
+
+.drum-badge {
+  font-size: 12px;
+}
+
 #saveModal .res-actions {
   margin-top: 18px;
   justify-content: flex-end;
@@ -1042,6 +1079,20 @@ input[type='text'] {
     width: 40px;
     height: 40px;
   }
+  .free-controls .rec-info {
+    display: none;
+  }
+  #rhythmSel {
+    max-width: 120px;
+    padding: 6px;
+  }
+  #rhythmBpm {
+    width: 58px;
+  }
+  .rhythm-group {
+    gap: 6px;
+    min-width: 0;
+  }
 
   /* Tiroir d'options en bas de l'écran */
   .options {
@@ -1166,6 +1217,7 @@ input[type='text'] {
 
 /* Écrans étroits : on garde l'essentiel du score */
 @media (max-width: 480px) {
+  .beat-dots,
   .stat-extra,
   .hud .stat .k {
     display: none;

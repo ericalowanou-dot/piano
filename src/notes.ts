@@ -17,6 +17,8 @@ export interface Song {
   notes: SongNote[];
   duration: number;
   imported?: boolean;
+  /** Accompagnement de batterie enregistré avec le morceau (start = début d'une mesure, en secondes) */
+  rhythm?: { pattern: string; bpm: number; start: number };
 }
 
 export type Notation = 'latin' | 'english';

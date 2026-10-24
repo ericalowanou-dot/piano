@@ -3,6 +3,7 @@ import './style.css';
 import { PianoSynth } from './audio';
 import { Engine, type HandsSel, type Mode, type NoteState, type Results } from './engine';
 import { MidiInput } from './midi-input';
+import { DrumMachine, PATTERNS, patternById, stepDuration } from './drums';
 import { midiFileName, songToMidi } from './midi-export';
 import { parseMidiFile } from './midi-file';
 import { formatTime, noteName, type Hand, type Notation, type Song, type SongNote } from './notes';
@@ -43,6 +44,8 @@ const settings = load('piano.settings', {
   hints: true,
   pcKeys: !isTouch,
   autoShift: true,
+  rhythm: 'pop',
+  drumVolume: 70,
   full: false,
   localSound: true,
   volume: 80,
@@ -373,9 +376,10 @@ function loadSong(song: Song) {
   applyRange();
   $('songTitle').textContent = song.title;
   const hands = new Set(song.notes.map((n) => n.hand));
+  const rhythm = song.rhythm && patternById(song.rhythm.pattern);
   $('songSub').textContent = `${song.composer} · ${song.notes.length} notes · ${
     hands.size === 2 ? 'deux mains' : hands.has('R') ? 'main droite' : 'main gauche'
-  }`;
+  }${rhythm ? ` · 🥁 ${rhythm.name}` : ''}`;
   $('timeTotal').textContent = formatTime(song.duration);
   updatePlayState();
 }
@@ -491,6 +495,9 @@ function togglePlay() {
     closeModals();
     setOptionsOpen(false);
     engine.play();
+    if (currentSong.rhythm && engine.mode === 'wait') {
+      toast('La batterie de ce morceau joue en mode Temps réel et Écoute');
+    }
   }
   updatePlayState();
 }
@@ -628,7 +635,9 @@ function renderLibrary() {
     card.innerHTML = `
       <div class="t"></div>
       <div class="c"></div>
-      <div class="meta">${level}<span>${formatTime(song.duration)}</span><span class="best" title="Meilleur score">${
+      <div class="meta">${level}<span>${formatTime(song.duration)}</span>${
+        song.rhythm ? '<span class="drum-badge" title="Avec rythme de batterie">🥁</span>' : ''
+      }<span class="best" title="Meilleur score">${
         top >= 0 ? `${stars} ${top}%` : ''
       }</span></div>`;
     card.querySelector('.t')!.textContent = song.title;
@@ -750,6 +759,13 @@ volume.addEventListener('input', () => {
   synth.setVolume(settings.volume / 100);
   saveSettings();
 });
+const drumVolume = $<HTMLInputElement>('setDrumVolume');
+drumVolume.value = String(settings.drumVolume);
+drumVolume.addEventListener('input', () => {
+  settings.drumVolume = +drumVolume.value;
+  drums.setVolume((settings.drumVolume / 100) * 0.9);
+  saveSettings();
+});
 $<HTMLSelectElement>('setMidiDevice').addEventListener('change', (e) => {
   settings.midiDevice = (e.target as HTMLSelectElement).value;
   midiInput.select(settings.midiDevice);
@@ -802,6 +818,8 @@ let freeMode = false;
 const trail: TrailNote[] = [];
 let recording: { t0: number; open: Map<number, number>; notes: SongNote[] } | null = null;
 let pendingRecording: SongNote[] | null = null;
+/** Rythme qui tournait pendant l'enregistrement (barStart = début d'une mesure, même horloge que t0) */
+let pendingRhythm: { pattern: string; bpm: number; barStart: number; t0: number } | null = null;
 const nowSec = () => performance.now() / 1000;
 
 function freeNoteOn(midi: number) {
@@ -841,7 +859,7 @@ function enterFreeMode() {
 function exitFreeMode() {
   if (!freeMode) return;
   if (recording) stopRecording();
-  setMetronome(false);
+  setRhythm(false);
   freeMode = false;
   trail.length = 0;
   document.body.classList.remove('free');
@@ -881,11 +899,22 @@ function stopRecording() {
     return;
   }
   pendingRecording = rec.notes;
+  // repère de mesure converti de l'horloge audio vers celle des notes
+  pendingRhythm = drums.running
+    ? {
+        pattern: drums.pattern.id,
+        bpm: drums.bpm,
+        barStart: nowSec() + (drums.barStart - synth.ctx.currentTime),
+        t0: rec.t0,
+      }
+    : null;
   const recorded = imported.filter((s) => s.id.startsWith('rec-')).length;
   $<HTMLInputElement>('saveName').value = `Mon morceau ${recorded + 1}`;
   const first = Math.min(...rec.notes.map((n) => n.start));
   const end = Math.max(...rec.notes.map((n) => n.start + n.dur));
-  $('saveInfo').textContent = `${rec.notes.length} notes · ${formatTime(end - first)}`;
+  $('saveInfo').textContent =
+    `${rec.notes.length} notes · ${formatTime(end - first)}` +
+    (pendingRhythm ? ` · rythme ${drums.pattern.name} à ${drums.bpm} BPM, gardé avec le morceau` : '');
   openModal('saveModal');
   $<HTMLInputElement>('saveName').select();
 }
@@ -910,9 +939,19 @@ function saveRecording(practice: boolean) {
     duration: Math.max(...notes.map((n) => n.start + n.dur)),
     imported: true,
   };
+  if (pendingRhythm) {
+    const p = patternById(pendingRhythm.pattern)!;
+    const bar = stepDuration(p, pendingRhythm.bpm) * p.steps;
+    // début de mesure le plus proche avant (ou pile sur) la première note
+    const rel = pendingRhythm.barStart - pendingRhythm.t0 - first;
+    let start = ((rel % bar) + bar) % bar;
+    if (start > 1e-3) start -= bar;
+    song.rhythm = { pattern: p.id, bpm: pendingRhythm.bpm, start: Math.round(start * 1000) / 1000 };
+  }
   imported.push(song);
   save('piano.imported', imported);
   pendingRecording = null;
+  pendingRhythm = null;
   closeModals();
   if (practice) {
     exitFreeMode();
@@ -935,6 +974,7 @@ $('saveOnly').addEventListener('click', () => saveRecording(false));
 $('savePlay').addEventListener('click', () => saveRecording(true));
 $('saveDiscard').addEventListener('click', () => {
   pendingRecording = null;
+  pendingRhythm = null;
   closeModals();
   toast('Enregistrement supprimé');
 });
@@ -942,38 +982,92 @@ $<HTMLInputElement>('saveName').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') saveRecording(true);
 });
 
-// Métronome (programmé à l'avance sur l'horloge audio pour rester régulier)
-let metroOn = false;
-let metroNext = 0;
-let metroBeat = 0;
-const metroBpm = () => Math.max(40, Math.min(220, +$<HTMLInputElement>('metroBpm').value || 90));
+// ---------- Boîte à rythmes ----------
+const drums = new DrumMachine(synth.ctx, synth.master);
+drums.setVolume((settings.drumVolume / 100) * 0.9);
+const rhythmSel = $<HTMLSelectElement>('rhythmSel');
+const rhythmBpm = $<HTMLInputElement>('rhythmBpm');
+for (const p of PATTERNS) rhythmSel.add(new Option(p.name, p.id));
 
-function setMetronome(on: boolean) {
-  metroOn = on;
-  const btn = $('btnMetro');
-  btn.classList.toggle('on', on);
-  btn.textContent = on ? 'On' : 'Off';
+function selectPattern(id: string, resetTempo: boolean) {
+  const p = patternById(id) ?? PATTERNS[0];
+  rhythmSel.value = p.id;
+  drums.setPattern(p);
+  if (resetTempo) setRhythmBpm(p.bpm);
+  $('beatDots').innerHTML = Array.from({ length: p.beats }, () => '<i></i>').join('');
+  settings.rhythm = p.id;
+  saveSettings();
+}
+
+function setRhythmBpm(v: number) {
+  drums.bpm = Math.max(40, Math.min(220, Math.round(v) || 90));
+  rhythmBpm.value = String(drums.bpm);
+}
+
+function setRhythm(on: boolean) {
   if (on) {
     synth.resume();
-    metroNext = synth.ctx.currentTime + 0.05;
-    metroBeat = 0;
-  }
+    drums.start();
+  } else drums.stop();
+  const btn = $('btnRhythm');
+  btn.classList.toggle('on', on);
+  btn.textContent = on ? '■' : '▶';
+  if (!on) $('beatDots').querySelectorAll('i').forEach((d) => d.classList.remove('on', 'first'));
 }
 
-function tickMetronome() {
-  if (!metroOn) return;
-  const spb = 60 / metroBpm();
-  while (metroNext < synth.ctx.currentTime + 0.12) {
-    synth.click(metroNext, metroBeat % 4 === 0);
-    metroNext += spb;
-    metroBeat++;
-  }
-}
+// Points qui s'allument à chaque temps, au moment exact où il sonne
+drums.onStep = (step, when) => {
+  const perBeat = drums.pattern.steps / drums.pattern.beats;
+  if (step % perBeat) return;
+  const beat = step / perBeat;
+  setTimeout(() => {
+    const dots = $('beatDots').querySelectorAll('i');
+    dots.forEach((d, i) => {
+      d.classList.toggle('on', i === beat);
+      d.classList.toggle('first', i === 0);
+    });
+  }, Math.max(0, (when - synth.ctx.currentTime) * 1000));
+};
 
-$('btnMetro').addEventListener('click', (e) => {
-  setMetronome(!metroOn);
+rhythmSel.addEventListener('change', () => {
+  selectPattern(rhythmSel.value, true);
+  rhythmSel.blur();
+});
+rhythmBpm.addEventListener('change', () => setRhythmBpm(+rhythmBpm.value));
+$('btnRhythm').addEventListener('click', (e) => {
+  setRhythm(!drums.running);
   (e.currentTarget as HTMLElement).blur();
 });
+selectPattern(settings.rhythm, true);
+
+// Batterie d'un morceau enregistré avec un rythme : jouée en Temps réel et en Écoute, calée sur le morceau
+let songDrumStep: number | null = null; // prochain pas à programmer (peut être négatif pendant le décompte)
+let songDrumTime = 0;
+
+function tickSongDrums() {
+  const r = currentSong?.rhythm;
+  const p = r && patternById(r.pattern);
+  // saut dans le morceau (recommencer, barre de progression) : on se recale
+  const jumped = engine.time < songDrumTime - 0.01 || engine.time > songDrumTime + 0.5;
+  songDrumTime = engine.time;
+  if (!r || !p || !engine.playing || engine.mode === 'wait' || jumped) {
+    songDrumStep = null;
+    if (!r || !p || !engine.playing || engine.mode === 'wait') return;
+  }
+  const dur = stepDuration(p, r.bpm);
+  if (songDrumStep === null) songDrumStep = Math.ceil((engine.time - r.start) / dur - 1e-6);
+  const horizon = engine.time + 0.12 * engine.speed;
+  const end = currentSong.duration + 0.3;
+  for (;;) {
+    const t = r.start + songDrumStep * dur;
+    if (t > horizon || t > end) break;
+    if (t >= engine.time - 0.03) {
+      const step = ((songDrumStep % p.steps) + p.steps) % p.steps;
+      drums.playStep(p, step, synth.ctx.currentTime + Math.max(0, (t - engine.time) / engine.speed));
+    }
+    songDrumStep++;
+  }
+}
 
 // ---------- Toast ----------
 let toastTimer = 0;
@@ -1002,7 +1096,7 @@ function frame(now: number) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   if (freeMode) {
-    tickMetronome();
+    drums.tick();
     const t = nowSec();
     // on oublie les notes sorties de l'écran
     for (let i = trail.length - 1; i >= 0; i--) {
@@ -1017,6 +1111,7 @@ function frame(now: number) {
   engine.update(dt);
   followPlannedBase();
   followWindow();
+  tickSongDrums();
   renderer.draw(engine, view, dt);
 
   const s = engine.stats;
@@ -1062,10 +1157,12 @@ if (import.meta.env.DEV) {
   (window as unknown as Record<string, unknown>).__piano = {
     engine,
     renderer,
+    drums,
     step(dt: number) {
       engine.update(dt);
       followPlannedBase();
       followWindow();
+      tickSongDrums();
     },
   };
 }

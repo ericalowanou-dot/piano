@@ -46,7 +46,9 @@ Choisis la main gauche ou la main droite pour la travailler seule : l'autre main
 
 ## Jeu libre
 
-Le bouton **Jeu libre** ouvre un piano sans morceau : tu joues ce que tu veux, et les notes montent au-dessus du clavier. Le bouton ● ou la touche Espace lance et arrête l'enregistrement. À l'arrêt, tu donnes un nom au morceau, puis il est ajouté à la bibliothèque. Les mains sont séparées au Do central, et tu peux t'entraîner dessus comme sur les autres morceaux. Un métronome réglable aide à garder le rythme pendant l'enregistrement.
+Le bouton **Jeu libre** ouvre un piano sans morceau : tu joues ce que tu veux, et les notes montent au-dessus du clavier. Le bouton ● ou la touche Espace lance et arrête l'enregistrement. À l'arrêt, tu donnes un nom au morceau, puis il est ajouté à la bibliothèque. Les mains sont séparées au Do central, et tu peux t'entraîner dessus comme sur les autres morceaux. ### Rythmes de batterie
+
+En Jeu libre, choisis un rythme (Métronome, Pop, Rock, Ballade, Afro / Gospel, Reggae, Bossa nova, Valse, Disco), lance-le avec ▶, règle le tempo en BPM et joue ta mélodie par-dessus. Si tu enregistres pendant que le rythme tourne, il est gardé avec le morceau (🥁 dans la bibliothèque). La batterie rejoue alors en mesure en modes Temps réel et Écoute, mais pas en mode Attente, puisque le morceau s'y arrête à chaque note. Son volume se règle dans les Réglages. Les sons de batterie sont produits par l'appli : rien n'est téléchargé.
 
 Tu peux aussi importer n'importe quel fichier `.mid` depuis la bibliothèque. Le bouton ⬇ d'un morceau l'exporte en `.mid`, par exemple pour transférer tes enregistrements vers un autre appareil ou un autre navigateur. Les meilleurs scores et les réglages sont enregistrés dans le navigateur.
 

@@ -49,11 +49,13 @@
             <span class="time" id="recTime">Joue ce que tu veux</span>
           </div>
         </div>
-        <div class="group">
-          <span class="group-label">Métronome</span>
-          <button class="toggle" id="btnMetro" title="Activer / couper le métronome">Off</button>
-          <input type="number" id="metroBpm" min="40" max="220" value="90" title="Pulsations par minute" />
+        <div class="group rhythm-group">
+          <span class="group-label">Rythme</span>
+          <select id="rhythmSel" title="Style de rythme"></select>
+          <button class="toggle" id="btnRhythm" title="Lancer / arrêter le rythme">▶</button>
+          <input type="number" id="rhythmBpm" min="40" max="220" value="90" title="Tempo (pulsations par minute)" />
           <span class="muted lbl">BPM</span>
+          <span class="beat-dots" id="beatDots"></span>
         </div>
         <button class="btn exit-free" id="btnExitFree" title="Retour aux morceaux">←<span class="lbl"> Retour aux morceaux</span></button>
       </div>
@@ -149,8 +151,9 @@
           <div class="start-card">
             <div class="start-title">Jeu libre</div>
             <p>Joue ce que tu veux : les notes montent au-dessus du clavier.</p>
-            <p class="muted">Appuie sur <span class="rec-mini"></span><span class="pc-only"> ou sur <kbd>Espace</kbd></span> pour enregistrer :
-              ton morceau sera ajouté à la bibliothèque pour t'entraîner dessus.</p>
+            <p class="muted">Choisis un <strong>rythme</strong> et lance-le avec ▶ pour jouer ta mélodie par-dessus.
+              Appuie sur <span class="rec-mini"></span><span class="pc-only"> ou sur <kbd>Espace</kbd></span> pour enregistrer :
+              ton morceau, avec son rythme, sera ajouté à la bibliothèque.</p>
           </div>
         </div>
         <div class="toast" id="toast"></div>
@@ -223,6 +226,10 @@
           <label class="row">
             <span>Volume</span>
             <input type="range" id="setVolume" min="0" max="100" />
+          </label>
+          <label class="row">
+            <span>Volume de la batterie</span>
+            <input type="range" id="setDrumVolume" min="0" max="100" />
           </label>
         </div>
       </div>
