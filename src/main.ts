@@ -3,7 +3,7 @@ import './style.css';
 import { PianoSynth } from './audio';
 import { Engine, type HandsSel, type Mode, type NoteState, type Results } from './engine';
 import { MidiInput } from './midi-input';
-import { DrumMachine, PATTERNS, patternById, stepDuration } from './drums';
+import { DrumMachine, PATTERNS, RHYTHM_GROUPS, patternById, stepDuration } from './drums';
 import { midiFileName, songToMidi } from './midi-export';
 import { parseMidiFile } from './midi-file';
 import { formatTime, noteName, type Hand, type Notation, type Song, type SongNote } from './notes';
@@ -987,7 +987,13 @@ const drums = new DrumMachine(synth.ctx, synth.master);
 drums.setVolume((settings.drumVolume / 100) * 0.9);
 const rhythmSel = $<HTMLSelectElement>('rhythmSel');
 const rhythmBpm = $<HTMLInputElement>('rhythmBpm');
-for (const p of PATTERNS) rhythmSel.add(new Option(p.name, p.id));
+// Liste déroulante rangée par familles de rythmes
+for (const group of RHYTHM_GROUPS) {
+  const og = document.createElement('optgroup');
+  og.label = group;
+  for (const p of PATTERNS.filter((x) => x.group === group)) og.appendChild(new Option(p.name, p.id));
+  rhythmSel.appendChild(og);
+}
 
 function selectPattern(id: string, resetTempo: boolean) {
   const p = patternById(id) ?? PATTERNS[0];

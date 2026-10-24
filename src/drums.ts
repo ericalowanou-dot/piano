@@ -1,60 +1,178 @@
 // Boîte à rythmes : sons de batterie synthétisés (Web Audio) et styles de rythmes.
 
-export type DrumSound = 'kick' | 'snare' | 'clap' | 'rim' | 'hat' | 'openhat' | 'shaker' | 'click';
+export type DrumSound =
+  | 'kick' | 'snare' | 'clap' | 'rim' | 'hat' | 'openhat' | 'ride' | 'shaker' | 'tamb'
+  | 'tom' | 'congaHi' | 'congaLo' | 'cowbell' | 'bell' | 'log' | 'click';
+
+export type RhythmGroup = 'Bases' | 'Afrique' | 'Gospel' | 'Caraïbes & Amérique latine' | 'Pop & urbain';
 
 export interface RhythmPattern {
   id: string;
   name: string;
-  beats: number; // temps par mesure
-  steps: number; // pas par mesure (4 par temps)
+  group: RhythmGroup;
+  beats: number; // temps par mesure (ou sur les 2 mesures du motif)
+  steps: number; // pas sur la durée du motif (4 par temps, 3 pour un rythme ternaire)
   bpm: number; // tempo conseillé
   // une chaîne par son, un caractère par pas : 'x' = coup, 'X' = coup accentué, '.' = rien
   tracks: Partial<Record<DrumSound, string>>;
 }
 
+/** Les espaces dans les motifs ne servent qu'à la lisibilité (un groupe = un temps) */
+function rhythm(
+  id: string, name: string, group: RhythmGroup, bpm: number,
+  tracks: Partial<Record<DrumSound, string>>, beats = 4,
+): RhythmPattern {
+  const clean = Object.fromEntries(Object.entries(tracks).map(([k, v]) => [k, v.replace(/\s/g, '')]));
+  const steps = Object.values(clean)[0].length;
+  return { id, name, group, beats, steps, bpm, tracks: clean };
+}
+
+// Motifs simplifiés, inspirés des rythmes typiques de chaque style.
+// Les identifiants ne doivent pas changer : ils sont enregistrés avec les morceaux.
 export const PATTERNS: RhythmPattern[] = [
-  {
-    id: 'metronome', name: 'Métronome', beats: 4, steps: 16, bpm: 90,
-    tracks: { click: 'X...x...x...x...' },
-  },
-  {
-    id: 'pop', name: 'Pop', beats: 4, steps: 16, bpm: 100,
-    tracks: { kick: 'X......xx.x.....', snare: '....X.......X...', hat: 'x.x.x.x.x.x.x.x.' },
-  },
-  {
-    id: 'rock', name: 'Rock', beats: 4, steps: 16, bpm: 116,
-    tracks: { kick: 'X.....x.X.x.....', snare: '....X.......X...', hat: 'X.x.X.x.X.x.X.x.' },
-  },
-  {
-    id: 'ballade', name: 'Ballade', beats: 4, steps: 16, bpm: 72,
-    tracks: { kick: 'X.........x.....', rim: '....x.......x...', hat: 'x.x.x.x.x.x.x.x.' },
-  },
-  {
-    id: 'afro', name: 'Afro / Gospel', beats: 4, steps: 16, bpm: 104,
-    tracks: {
-      kick: 'X..x...xx..x....',
-      clap: '....X.......X...',
-      rim: '..x..x....x..x..',
-      shaker: 'XxxxXxxxXxxxXxxx',
-    },
-  },
-  {
-    id: 'reggae', name: 'Reggae', beats: 4, steps: 16, bpm: 76,
-    tracks: { kick: '........X.......', rim: '........x.......', hat: '..x...x...x...x.' },
-  },
-  {
-    id: 'bossa', name: 'Bossa nova', beats: 4, steps: 16, bpm: 120,
-    tracks: { kick: 'X..xx..xX..xx..x', rim: 'x..x..x...x..x..', hat: 'x.x.x.x.x.x.x.x.' },
-  },
-  {
-    id: 'valse', name: 'Valse (3 temps)', beats: 3, steps: 12, bpm: 96,
-    tracks: { kick: 'X...........', hat: '....x...x...', rim: '....x...x...' },
-  },
-  {
-    id: 'disco', name: 'Disco', beats: 4, steps: 16, bpm: 118,
-    tracks: { kick: 'X...X...X...X...', clap: '....X.......X...', openhat: '..x...x...x...x.' },
-  },
+  // ---- Bases
+  rhythm('metronome', 'Métronome (4 temps)', 'Bases', 90, { click: 'X... x... x... x...' }),
+  rhythm('metronome3', 'Métronome (3 temps)', 'Bases', 90, { click: 'X... x... x...' }, 3),
+  rhythm('ballade', 'Ballade', 'Bases', 72, {
+    kick: 'X... .... ..x. ....', rim: '.... x... .... x...', hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('valse', 'Valse (3 temps)', 'Bases', 96, {
+    kick: 'X... .... ....', hat: '.... x... x...', rim: '.... x... x...',
+  }, 3),
+
+  // ---- Afrique
+  rhythm('seben', 'Seben (soukous)', 'Afrique', 138, {
+    kick: 'X... x... X... x...', snare: '.... X..x .... X.x.', hat: 'x.xx x.xx x.xx x.xx',
+    congaHi: '..x. .... ..x. ..x.',
+  }),
+  rhythm('rumba', 'Rumba congolaise', 'Afrique', 112, {
+    kick: 'X... .... X... ....', rim: 'x..x ..x. ..x. x...', hat: 'x.x. x.x. x.x. x.x.',
+    congaHi: '..x. .... ..x. ....', congaLo: '.... ..x. .... ..x.',
+  }),
+  rhythm('ndombolo', 'Ndombolo', 'Afrique', 124, {
+    kick: 'X... X... X... X...', snare: '.... X... .... X..x', hat: 'xxxx xxxx xxxx xxxx',
+    tamb: '..x. ..x. ..x. ..x.',
+  }),
+  rhythm('coupe-decale', 'Coupé-décalé', 'Afrique', 128, {
+    kick: 'X... X... X... X...', clap: '.... X... .... X...', hat: 'x.xx x.xx x.xx x.xx',
+    congaHi: '..x. .x.. ..x. .x..', congaLo: '...x .... ...x ..x.',
+  }),
+  rhythm('zouglou', 'Zouglou', 'Afrique', 100, {
+    kick: 'X... ..x. X... ....', rim: '..x. ..x. ..x. ..x.', congaLo: 'x..x .... x..x ....',
+    tamb: '.... X... .... X...',
+  }),
+  rhythm('makossa', 'Makossa', 'Afrique', 118, {
+    kick: 'X... X... X... X...', snare: '.... X... .... X...', openhat: '..X. ..X. ..X. ..X.',
+    rim: 'x.x. .x.x ..x. x..x',
+  }),
+  rhythm('highlife', 'Highlife', 'Afrique', 120, {
+    kick: 'X... .... X.x. ....', rim: '.... x... .... x...', bell: 'x..x ..x. ..x. x...',
+    hat: 'x.x. x.x. x.x. x.x.', congaHi: '...x ...x ...x ..x.',
+  }),
+  rhythm('afro', 'Afrobeats', 'Afrique', 104, {
+    kick: 'X..x ...x x..x ....', clap: '.... X... .... X...', rim: '..x. .x.. ..x. .x..',
+    shaker: 'Xxxx Xxxx Xxxx Xxxx',
+  }),
+  rhythm('afrobeat', 'Afrobeat (Fela)', 'Afrique', 112, {
+    kick: 'X..x .... X.x. ....', snare: '.... x..x .x.. x...', hat: 'xxxx xxxx xxxx xxxx',
+    cowbell: 'x.x. .x.x .x.. x.x.',
+  }),
+  rhythm('amapiano', 'Amapiano', 'Afrique', 112, {
+    kick: 'X... X... X... X...', shaker: 'x.xx x.xx x.xx x.xx', log: 'X..x ..x. ..x. x...',
+    clap: '.... X... .... X...',
+  }),
+  rhythm('bikutsi', 'Bikutsi (6/8)', 'Afrique', 140, {
+    kick: 'X..... X.....', hat: 'xxxxxx xxxxxx', snare: '...x.. ...x..', rim: 'x.x.x. x.x.x.',
+  }, 2),
+  rhythm('mbalax', 'Mbalax', 'Afrique', 122, {
+    kick: 'X..x ..x. X..x ..x.', congaHi: 'x.xx .x.x x.xx .x.x', congaLo: '...x .... ...x ....',
+    tamb: '.... x... .... x...',
+  }),
+
+  // ---- Gospel
+  rhythm('louange', 'Louange (rapide)', 'Gospel', 120, {
+    kick: 'X... X... X... X...', clap: '.... X... .... X...', tamb: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('adoration', 'Adoration (lente, 12/8)', 'Gospel', 66, {
+    kick: 'X.. ... x.. ...', snare: '... X.. ... X..', hat: 'x.x x.x x.x x.x',
+  }),
+
+  // ---- Caraïbes & Amérique latine
+  rhythm('zouk', 'Zouk', 'Caraïbes & Amérique latine', 92, {
+    kick: 'X... ...x X... ....', snare: '.... X... .... X...', rim: 'x..x ..x. x..x ..x.',
+    hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('kompa', 'Kompa', 'Caraïbes & Amérique latine', 118, {
+    kick: 'X..x .... X..x ....', snare: '.... X... .... X...', cowbell: '..x. ..x. ..x. ..x.',
+    hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('reggae', 'Reggae', 'Caraïbes & Amérique latine', 76, {
+    kick: '.... .... X... ....', rim: '.... .... x... ....', hat: '..x. ..x. ..x. ..x.',
+  }),
+  rhythm('dancehall', 'Dancehall', 'Caraïbes & Amérique latine', 98, {
+    kick: 'X..x ..x. X..x ..x.', snare: '.... X... .... X...', hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('salsa', 'Salsa (clave 3-2)', 'Caraïbes & Amérique latine', 180, {
+    rim: 'x... ..x. .... x... .... x... x... ....',
+    cowbell: 'X... x... x... x... X... x... x... x...',
+    congaHi: '.... .... .... ..xx .... .... .... ..xx',
+    congaLo: '.... x... .... x... .... x... .... x...',
+    kick: '.... .... ..x. .... .... .... ..x. ....',
+  }, 8),
+  rhythm('bossa', 'Bossa nova', 'Caraïbes & Amérique latine', 120, {
+    kick: 'X..x x..x X..x x..x', rim: 'x..x ..x. ..x. .x..', hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('samba', 'Samba', 'Caraïbes & Amérique latine', 100, {
+    kick: 'X..x X..x X..x X..x', tamb: 'Xxxx Xxxx Xxxx Xxxx', rim: 'x.x. .x.x .x.x .x..',
+  }),
+  rhythm('cumbia', 'Cumbia', 'Caraïbes & Amérique latine', 96, {
+    kick: 'X... .... X... ....', shaker: 'x.xx x.xx x.xx x.xx', congaHi: '..x. ..x. ..x. ..x.',
+    rim: '.... x... .... x...',
+  }),
+  rhythm('merengue', 'Merengue', 'Caraïbes & Amérique latine', 128, {
+    kick: 'X... X... X... X...', tamb: 'xxxx xxxx xxxx xxxx', congaHi: 'x.x. x.xx x.x. x.xx',
+  }),
+  rhythm('bachata', 'Bachata', 'Caraïbes & Amérique latine', 126, {
+    kick: 'X... .... X... ....', congaHi: 'x.xx x.xx x.xx x.xx', rim: '..x. ..x. ..x. ..x.',
+  }),
+
+  // ---- Pop & urbain
+  rhythm('pop', 'Pop', 'Pop & urbain', 100, {
+    kick: 'X... ...x x.x. ....', snare: '.... X... .... X...', hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('rock', 'Rock', 'Pop & urbain', 116, {
+    kick: 'X... ..x. X.x. ....', snare: '.... X... .... X...', hat: 'X.x. X.x. X.x. X.x.',
+  }),
+  rhythm('hiphop', 'Hip-hop', 'Pop & urbain', 90, {
+    kick: 'X... ...x ..X. ....', snare: '.... X... .... X...', hat: 'x.x. x.x. x.x. x.x.',
+  }),
+  rhythm('rnb', 'R&B', 'Pop & urbain', 72, {
+    kick: 'X... ..x. .x.. ....', snare: '.... X... .... X...', hat: 'xxxx xxxx xxxx xxxx',
+  }),
+  rhythm('trap', 'Trap', 'Pop & urbain', 140, {
+    kick: 'X... .... .... .... .... ..x. X... ....',
+    snare: '.... .... .... .... X... .... .... ....',
+    hat: 'x.x. x.x. x.x. x.x. x.x. xxxx x.x. xxxx',
+  }),
+  rhythm('funk', 'Funk', 'Pop & urbain', 100, {
+    kick: 'X.x. ...x ..x. .x..', snare: '.... X..x .x.. X...', hat: 'xxxx xxxx xxxx xxxx',
+  }),
+  rhythm('disco', 'Disco', 'Pop & urbain', 118, {
+    kick: 'X... X... X... X...', clap: '.... X... .... X...', openhat: '..x. ..x. ..x. ..x.',
+  }),
+  rhythm('afrohouse', 'Afro house', 'Pop & urbain', 122, {
+    kick: 'X... X... X... X...', clap: '.... X... .... X...', openhat: '..x. ..x. ..x. ..x.',
+    congaHi: '...x ..x. ...x .x..', shaker: 'xxxx xxxx xxxx xxxx',
+  }),
+  rhythm('blues', 'Blues (shuffle)', 'Pop & urbain', 90, {
+    kick: 'X.. ... X.. ...', snare: '... X.. ... X..', hat: 'x.x x.x x.x x.x',
+  }),
+  rhythm('jazz', 'Jazz (swing)', 'Pop & urbain', 130, {
+    ride: 'X.. x.x X.. x.x', hat: '... x.. ... x..', kick: 'x.. ... ... ...',
+  }),
 ];
+
+export const RHYTHM_GROUPS: RhythmGroup[] = ['Bases', 'Afrique', 'Gospel', 'Caraïbes & Amérique latine', 'Pop & urbain'];
 
 export const patternById = (id: string) => PATTERNS.find((p) => p.id === id);
 
@@ -184,6 +302,36 @@ export class DrumMachine {
         break;
       case 'click':
         this.toneHit(when, 0.3 * vel, 0.05, 'sine', vel > 0.9 ? 1760 : 1100);
+        break;
+      case 'ride':
+        this.noiseHit(when, 0.1 * vel, 0.45, 'bandpass', 5200, 1.5);
+        this.toneHit(when, 0.05 * vel, 0.35, 'sine', 3100);
+        break;
+      case 'tamb':
+        this.noiseHit(when, 0.13 * vel, 0.11, 'highpass', 8500);
+        this.noiseHit(when + 0.012, 0.07 * vel, 0.08, 'bandpass', 6000, 3);
+        break;
+      case 'tom':
+        this.toneHit(when, 0.55 * vel, 0.3, 'sine', 170, 110);
+        break;
+      case 'congaHi':
+        this.toneHit(when, 0.42 * vel, 0.17, 'sine', 400, 340);
+        this.noiseHit(when, 0.06 * vel, 0.02, 'bandpass', 2500);
+        break;
+      case 'congaLo':
+        this.toneHit(when, 0.48 * vel, 0.22, 'sine', 260, 210);
+        this.noiseHit(when, 0.05 * vel, 0.02, 'bandpass', 1800);
+        break;
+      case 'cowbell':
+        for (const f of [545, 815]) this.toneHit(when, 0.12 * vel, 0.25, 'square', f);
+        break;
+      case 'bell': // cloche africaine (gankogui, agogo)
+        this.toneHit(when, 0.22 * vel, 0.32, 'sine', 1240);
+        this.toneHit(when, 0.08 * vel, 0.18, 'sine', 3310);
+        break;
+      case 'log': // log drum de l'amapiano : basse percussive grave
+        this.toneHit(when, 0.75 * vel, 0.45, 'triangle', 98, 62);
+        this.toneHit(when, 0.3 * vel, 0.3, 'sine', 196, 124);
         break;
     }
   }
